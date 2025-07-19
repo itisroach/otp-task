@@ -66,9 +66,18 @@ class VerifyOTPView(APIView):
 
         # generating tokens
         refresh = RefreshToken.for_user(user)
-        
+
         return Response({
             "access": str(refresh.access_token),
             "refresh": str(refresh)
         }, status=status.HTTP_200_OK)
         
+
+
+class UserProfileView(APIView):
+    from rest_framework.permissions import IsAuthenticated
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
