@@ -3,7 +3,8 @@ from django.utils import timezone
 from datetime import timedelta
 from django_ratelimit.decorators import ratelimit
 import random
-from rest_framework.views import APIView
+from rest_framework import generics
+from django.utils.decorators import method_decorator
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -12,14 +13,16 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User, OTP
 from .serializers import RequestOTPSerializer, VerifyOTPSerializer, UserSerializer
 
-logger = logging.getLogger(__name__)
 
 def generate_otp_code():
     return f"{random.randint(1000, 9999)}"
 
-class RequestOTPView(APIView):
+class RequestOTPView(generics.GenericAPIView):
+
+    serializer_class = RequestOTPSerializer
+
     #limit for requesting 3 otp code in 10 minutes
-    @ratelimit(key='post:mobile', rate='3/10m', block=True)
+    @method_decorator(ratelimit(key='post:mobile', rate='5/m', method='POST', block=True))
     def post(self, request):
         serializer = RequestOTPSerializer(data=request.data)
         
@@ -38,7 +41,9 @@ class RequestOTPView(APIView):
         return Response({"detail": "OTP sent successfully (check logs)."}, status=status.HTTP_200_OK)
     
 
-class VerifyOTPView(APIView):
+class VerifyOTPView(generics.GenericAPIView):
+
+    serializer_class = VerifyOTPSerializer
 
     def post(self, request):
         serializer = VerifyOTPSerializer(data=request.data)
@@ -74,9 +79,10 @@ class VerifyOTPView(APIView):
         
 
 
-class UserProfileView(APIView):
+class UserProfileView(generics.GenericAPIView):
     from rest_framework.permissions import IsAuthenticated
     permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
 
     def get(self, request):
         serializer = UserSerializer(request.user)
