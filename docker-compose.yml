@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   web:
     build: .
@@ -26,4 +24,18 @@ services:
     restart: always
     environment:
       POSTGRES_DB: otp_auth_db
-      POSTGRES_USER: u_
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+
+  redis:
+    image: redis:6
+    restart: always
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
