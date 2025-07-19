@@ -37,3 +37,38 @@ class RequestOTPView(APIView):
 
         return Response({"detail": "OTP sent successfully (check logs)."}, status=status.HTTP_200_OK)
     
+
+class VerifyOTPView(APIView):
+
+    def post(self, request):
+        serializer = VerifyOTPSerializer(data=request.data)
+        
+        serializer.is_valid(raise_exception=True)
+        
+        mobile = serializer.validated_data['mobile']
+        code = serializer.validated_data['code']
+
+        # validating otp codes
+        try:
+            otp = OTP.objects.filter(mobile=mobile, code=code).latest('created_at')
+        except OTP.DoesNotExist:
+            return Response({"detail": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if otp.is_expired():
+            return Response({"detail": "OTP expired."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # deleting otp code after usage
+        otp.delete()
+
+        # creating a user, user object does not exists
+        user, _ = User.objects.get_or_create(mobile=mobile)
+
+
+        # generating tokens
+        refresh = RefreshToken.for_user(user)
+        
+        return Response({
+            "access": str(refresh.access_token),
+            "refresh": str(refresh)
+        }, status=status.HTTP_200_OK)
+        
